@@ -82,7 +82,6 @@ class ClientTread(threading.Thread):
 		self.conn.settimeout(2)
 		self.name = ip
 		self.ip = ip
-		self.edting_handler = None
 		self.running = True
 		monitoring.addConnection(ip)
 		self.log.saveIP(ip)
@@ -291,7 +290,6 @@ def main():
 	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #Server läuft übers internet (TCP)
 	server.bind(("", PORT)) # Auf der ip vom Rechner, auf dem das Programm ausgeführt wird auf dem Port 52323
 	server.listen(10) # Es können maximal 10 Clients gleichzeitig verbunden sein
-	server.settimeout(2)
 
 	while True:
 		monitoring.timeExecution()
