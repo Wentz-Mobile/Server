@@ -2,3 +2,5 @@ client.py
 marvin/
 Protocoll/
 docs/
+.vs/
+__pycache__
