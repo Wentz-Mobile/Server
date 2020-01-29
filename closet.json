@@ -1,0 +1,17 @@
+[
+	{
+		"name": "Verbandspäckchen",
+		"items":[
+			{
+				"name": "8x6cm",
+				"value": 200,
+				"reorder": true
+			},
+			{
+				"name": "8x6cm",
+				"value": 200,
+				"reorder": true
+			}
+			]
+	}
+]
