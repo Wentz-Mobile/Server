@@ -1,2 +1,0 @@
-[d: 18-01-2020   t: 13.18.36]   --------Server is online--------
-TIME                            IDENT  IP              REQUEST/RESPONSE
