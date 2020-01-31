@@ -31,6 +31,9 @@ VERSION = '1.0.0'
 # THREADING VARIABLES
 connected_ips = []
 
+class RequestHandler():
+	pass
+
 class ClientTread(threading.Thread):
 
 	def __init__(self, conn, ip):
