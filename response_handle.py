@@ -1,6 +1,0 @@
-class ResponseHandler(object):
-    pass
-
-
-
-

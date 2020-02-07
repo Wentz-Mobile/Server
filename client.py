@@ -1,63 +1,80 @@
 import threading
+import json
+from socket import timeout
+from response_handle import ResponseHandler
 
 class ClientThread(threading.Thread):
+
+
 
 	def __init__(self, conn, ip):
 		super().__init__()
 		self.conn = conn
 		self.conn.settimeout(2)
-		self.name = ip
+		self.name = 'Client {}'.format(ip);
 		self.ip = ip
-		self.log = secretary.LogEntry()
 		self.running = True
-		monitoring.addConnection(ip)
-		self.log.saveIP(ip)
-		self.client_info = self.request_sign_up()
+		self.sign_up()
 	
 	# ------------------- #
-	def resources_available(self, target):
-		return True
+	def sign_up(self):
+		data = receive()
+		if data:
+			if has_keys(data, ['os', 'version', 'hash']):
+
+
+
 
 	def disconnect(self):
 		self.running = False
-		monitoring.removeConnection(self.name)
-		connected_ips.remove(self.ip)
 		self.conn.close()
 
-	def send(self, jdic):
-		self.log.writeLog()
-		self.conn.send(json.dumps(jdic).encode('utf8'))
+	
 
 	def run(self):
 		while self.running:
-			try:
-				data = self.conn.recv(1024)
-				# HANDLE 0 BYTES (Client disconnected)
-				if data == b'':
-					self.disconnect()
-					continue
-				data = json.loads(data)
-				self.log.saveInput(data)
-				
-				# HANDLE DATA
-				if data['action'] == REQUEST_SIGN_UP:
-					pass
-			
+			receive()
+
+	def send(self, jdic):
+		self.conn.send(json.dumps(jdic).encode('utf8'))
+
+	def receive(self):
+		try:
+			data = self.conn.recv(1024) # Receive 1024 byte (or try at least)
+		
+			if data == b'': # HANDLE 0 BYTES (Client disconnected)
+				self.disconnect()
+				return None
+			data = json.loads(data)
+			return data
 			# HANDLE EXCEPTIONS
-			except ConnectionResetError:
-				self.disconnect()
-			except ConnectionAbortedError:
-				self.disconnect()
+		except timeout:
+			pass
+		except KeyError:
+			self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
+		except json.decoder.JSONDecodeError:
+			self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
+		except Exception as e:
+			self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
+			self.disconnect()
+		except ConnectionResetError:
+			self.disconnect()
+		except ConnectionAbortedError:
+			self.disconnect()
+		return None
+		
+		
+def has_keys(dict, keys):
+	if isinstance(keys, str):
+		return keys in dict
 
-			except KeyError:
-				self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
-			except json.decoder.JSONDecodeError:
-				self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
-			except Exception as e:
-				self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
-				self.disconnect()
+	for key in keys:
+		if not key in dict:
+			return False
+	return True
 
-		self.disconnect()
+class handler(object):
+    pass
 
 
 
