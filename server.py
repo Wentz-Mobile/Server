@@ -7,7 +7,6 @@ import socket
 import string
 import threading
 import time
-import monitoring
 import secretary
 import file_manager
 import client_manager
@@ -32,8 +31,6 @@ VERSION = '1.0.0'
 
 def main():
 	# Server Setup
-	monitoring.saveVersion(VERSION)
-	monitoring.saveExecutionInterval(60)
 	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #The server is running over the Internet with the TCP protocoll
 	server.bind(("", PORT)) #The server uses the computers own IP and the predefined PORT
 	server.listen(200) #The server can handle up to 200 clients at once

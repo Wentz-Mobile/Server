@@ -13,16 +13,16 @@ HTTP_EXPECTATION_FAILED  = 417
 HTTP_LOCKED 			 = 423
 HTTP_NOT_IMPLEMENTED 	 = 501
 
-REQUEST_SIGN_UP	= 1;
+REQUEST_SIGN_UP	= 1
+
+TARGET_FILE_DATES
+TARGET_FILE_CREATORS
 
 class ClientThread(threading.Thread):
-
-
 
 	def __init__(self, conn, ip):
 		super().__init__()
 		self.conn = conn
-		self.conn.settimeout(2)
 		self.name = 'Client {}'.format(ip);
 		self.ip = ip
 		self.running = True
@@ -31,15 +31,18 @@ class ClientThread(threading.Thread):
 	
 	# ------------------- #
 	def sign_up(self):
+		self.conn.settimeout(1)
 		data = self.receive()
 		if data:
-			self.client_info, send = self.handler.handle_sign_up(data)
-			self.send(send)
+			self.os, was_sign_up_valide = self.handler.handle_sign_up(data)
+			if not was_sign_up_valide:
+				self.disconnect()
 		else:
 			self.disconnect()
+
+		self.conn.settimeout(2)
 					   			 
 	def disconnect(self):
-		print('client disconected')
 		self.running = False
 		self.conn.close()
 
@@ -47,6 +50,9 @@ class ClientThread(threading.Thread):
 
 	def run(self):
 		while self.running:
+			for transmission in self.handler.pending_transmissions:
+				self.send(transmission)
+
 			self.receive()
 
 	def send(self, jdic):
@@ -60,6 +66,7 @@ class ClientThread(threading.Thread):
 				self.disconnect()
 				return None
 			data = json.loads(data)
+			print(data)
 			return data
 			# HANDLE EXCEPTIONS
 		except timeout:
@@ -67,6 +74,7 @@ class ClientThread(threading.Thread):
 		except KeyError:
 			self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
 		except json.decoder.JSONDecodeError:
+			print('decode error')
 			self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
 		except Exception as e:
 			self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
@@ -88,9 +96,19 @@ def has_keys(dict, keys):
 	return True
 
 class Handler(object):
+
+	def __init__():
+		self.pending_transmissions = []
+
 	def handle_sign_up(self, request):
-		if has_keys(request, {'os', 'version', 'hash'}): # Validate the request
-			client_info =	{
-							'os' : request['os'] # Add everything necessary to the client information
-							}
-			return client_info, {'action' : REQUEST_SIGN_UP, 'code' : HTTP_OK} # Return the client info and what to respond to the client
+		if has_keys(request, {'action','os', 'version', 'hash'}) and request['action'] is REQUEST_SIGN_UP: # Validate the request
+			os = request['os']
+			self.pending_transmissions.append({'action' : REQUEST_SIGN_UP, 'code' : HTTP_OK})
+
+			hashes = request['hash']
+
+
+			return os, True # Return the client info
+
+		self.pending_transmissions.append({'action' : REQUEST_SIGN_UP, 'code' : HTTP_BAD_REQUEST})
+		return None, False
