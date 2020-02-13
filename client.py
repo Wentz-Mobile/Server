@@ -1,5 +1,6 @@
 import threading
 import json
+import file_manager
 from socket import timeout
 
 HTTP_OK 				 = 200
@@ -15,8 +16,10 @@ HTTP_NOT_IMPLEMENTED 	 = 501
 
 REQUEST_SIGN_UP	= 1
 
-TARGET_FILE_DATES
-TARGET_FILE_CREATORS
+INFORM_FILE_CHANGE = 200
+
+TARGET_FILE_CREATORS	= 2
+TARGET_FILE_DATES		= 3
 
 class ClientThread(threading.Thread):
 
@@ -40,7 +43,6 @@ class ClientThread(threading.Thread):
 		else:
 			self.disconnect()
 
-		self.conn.settimeout(2)
 					   			 
 	def disconnect(self):
 		self.running = False
@@ -52,11 +54,11 @@ class ClientThread(threading.Thread):
 		while self.running:
 			for transmission in self.handler.pending_transmissions:
 				self.send(transmission)
-
+			self.handler.pending_transmissions.clear()
 			self.receive()
 
 	def send(self, jdic):
-		self.conn.send(json.dumps(jdic).encode('utf8'))
+		self.conn.send((json.dumps(jdic) + '\n').encode('utf8'))
 
 	def receive(self):
 		try:
@@ -97,18 +99,30 @@ def has_keys(dict, keys):
 
 class Handler(object):
 
-	def __init__():
+	def __init__(self):
 		self.pending_transmissions = []
 
 	def handle_sign_up(self, request):
-		if has_keys(request, {'action','os', 'version', 'hash'}) and request['action'] is REQUEST_SIGN_UP: # Validate the request
+		if has_keys(request, ['action','os', 'version', 'hash']) and request['action'] is REQUEST_SIGN_UP: # Validate the request
 			os = request['os']
 			self.pending_transmissions.append({'action' : REQUEST_SIGN_UP, 'code' : HTTP_OK})
-
 			hashes = request['hash']
+			if not has_keys(hashes, 'creatos') or file_manager.has_changed(hashes['creators'], TARGET_FILE_CREATORS):
+				self.build_file_change_inform(TARGET_FILE_CREATORS)
 
+			if not has_keys(hashes, 'dates') or file_manager.has_changed(hashes['dates'], TARGET_FILE_DATES):
+				self.build_file_change_inform(TARGET_FILE_DATES)
 
 			return os, True # Return the client info
 
 		self.pending_transmissions.append({'action' : REQUEST_SIGN_UP, 'code' : HTTP_BAD_REQUEST})
 		return None, False
+
+	def build_file_change_inform(self, target):
+		 self.pending_transmissions.append(	{
+											'action' : INFORM_FILE_CHANGE, 
+											'target' : target,
+											'hash' : file_manager.get_hash(target),
+											'data' : file_manager.get_file(target)
+											})
+	

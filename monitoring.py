@@ -42,7 +42,7 @@ def getBar(height):
     return " "
 
 def saveVersion(nVersion):
-    global saveVersion
+    global version
     version = nVersion
     show()
 
