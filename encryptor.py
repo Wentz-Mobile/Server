@@ -3,6 +3,25 @@ import random
 import os
 
 KEYSTRENGTH = 16
+e = 65537
+
+class Encryptor(object):
+    def __init__(self, N):
+        self.N = N
+
+    def encrypt(self, message):
+        return encrypt(message, e, self.N)
+
+
+class Decryptor(object):
+    def __init__(self):
+        self.d, self.N, self.p, self.q = get_keys()
+
+    def decrypt(self, messsage):
+        return decrypt(messsage, self.d, self.N, self.p, self.q)
+
+    def getN(self):
+        return self.N
 
 def egcd(a, b):
     if a == 0:
@@ -54,46 +73,32 @@ def get_keys():
         
         N = p * q
         phiN = (p - 1)*(q - 1)
-        e = 65537
         gcd, d, k = egcd(e, phiN)
-        print('phiN: ' + str(phiN))
+        #print('phiN: ' + str(phiN))
         if N * 0.25 > d:
             d = 0
-    return e, d, N, p, q
+    return d, N, p, q
 
 def encrypt(m, e, N):
-    print('---------------------------------------------------------------------------------------')
-    print('m: ' + str(m))
+    #print('---------------------------------------------------------------------------------------')
+    #print('m: ' + str(m))
     m = int.from_bytes(m.encode(), byteorder="big")
-    print('m int: ' + str(m))
+    #print('m int: ' + str(m))
     mE = pow(m, e, N)
-    print('m (encrypted): ' + str(mE))
+    #print('m (encrypted): ' + str(mE))
     return mE
 
 def decrypt(m, d, N, p, q):
     dmp = d % (p -1)
     dmq = d % (q -1)
     iqmp = pow(q, -1, p)
-    print('---------------------------------------------------------------------------------------')
+    #print('---------------------------------------------------------------------------------------')
     m1 = pow(m, dmp, p)
     m2 = pow(m, dmq, q)
     s = (iqmp * (m1 - m2)) % p * q + m2
-    print('m (decrypted): ' + str(s))
+    #print('m (decrypted): ' + str(s))
     s = s.to_bytes(16, byteorder="big")
     s = s.decode('utf-8').lstrip('\0')
-    print('m: ' + s)
+    #print('m: ' + s)
     return s
-e, d, N, p, q = get_keys()
 
-print('-------------------------------------------------------------------------------------------')
-print('p: ' + str(p)) # e ist der encryption code
-print('q: ' + str(q)) # e ist der encryption code
-print('e: ' + str(e)) # e ist der encryption code
-print('d: ' + str(d)) # d ist der decryption code
-print('N: ' + str(N)) # N ist das RSA-Modul (braucht man zum Ver- und Vntschlüsseln).
-
-m = 'Hello World' # Hier kannste den Text eingeben. Pass auf, dass du nicht mehr Zeichen, als die KEYSTRENGTH, eingibst.
-
-print(int.from_bytes((m).encode(), byteorder="big") > N)
-mE = encrypt(m, e, N)
-mD = decrypt(mE, d, N, p, q)
