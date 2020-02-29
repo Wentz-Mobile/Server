@@ -21,7 +21,7 @@ class Decryptor(object):
         return decrypt(messsage, self.d, self.N, self.p, self.q)
 
     def getN(self):
-        return self.N
+        return str(self.N)
 
 def egcd(a, b):
     if a == 0:
@@ -89,6 +89,7 @@ def encrypt(m, e, N):
     return mE
 
 def decrypt(m, d, N, p, q):
+    m = int(m)
     dmp = d % (p -1)
     dmq = d % (q -1)
     iqmp = pow(q, -1, p)

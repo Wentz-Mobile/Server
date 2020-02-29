@@ -41,18 +41,18 @@ class ClientThread(threading.Thread):
 		self.conn.settimeout(1)
 		data = self.receive()
 		if data:
-			self.os, self.encryptor, is_valide = self.handler.handle_sign_up(data)
+			self.os, self.encryptor, is_valide = self.handler.handle_sign_up(data, self.decryptor.getN())
 			if not is_valide:
 				self.disconnect()
 		else:
 			self.disconnect()
 
-					   			 
+
 	def disconnect(self):
 		self.running = False
 		self.conn.close()
 
-	
+
 
 	def run(self):
 		while self.running:
@@ -63,37 +63,41 @@ class ClientThread(threading.Thread):
 			data = self.receive()
 			if data and 'action' in data:
 				if data['action'] is REQUEST_LOGIN:
-					self.handler.handle_login(data)
+					self.handler.handle_login(data, self.decryptor)
 
 	def send(self, jdic):
+		print("New transmission: " + str(jdic))
 		self.conn.send((json.dumps(jdic) + '\n').encode('utf8'))
 
 	def receive(self):
 		try:
 			data = self.conn.recv(1024) # Receive 1024 byte (or try at least)
-		
+
 			if data == b'': # HANDLE 0 BYTES (Client disconnected)
 				self.disconnect()
 				return None
+			
 			data = json.loads(data)
-			print(data)
+			print('Received Data: ' + str(data))
 			return data
 		# HANDLE EXCEPTIONS
 		except timeout:
 			pass
 		except KeyError:
-			self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
+			self.send({'code': HTTP_BAD_REQUEST, 'action': -1})
 		except json.decoder.JSONDecodeError:
 			print('decode error')
-			self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
+			self.send({'code': HTTP_BAD_REQUEST, 'action': -1})
 		except ConnectionResetError:
 			self.disconnect()
 		except ConnectionAbortedError:
 			self.disconnect()
+		'''
 		except Exception:
-			self.send({'code': HTTP_BAD_REQUEST, 'request': -1})
+			print('unknown exception')
+			self.send({'code': HTTP_BAD_REQUEST, 'action': -1})
 			self.disconnect()
-		
+		'''
 		return None
 		
 		
@@ -108,43 +112,43 @@ class Handler(object):
 	def __init__(self):
 		self.pending_transmissions = []
 
-	def handle_sign_up(self, request):
+	def handle_sign_up(self, request, N):
 		if has_keys(request, ['action','os', 'version', 'N', 'hash']) and request['action'] is REQUEST_SIGN_UP: # Validate the request
+			self.pending_transmissions.append({'action' : REQUEST_SIGN_UP, 'code' : HTTP_OK, 'N' : N})
 			os = request['os']
-			encryptor = encryptor.Encryptor(request['N'])
+			encrypt = encryptor.Encryptor(request['N'])
 			hashes = request['hash']
 			if 'creators' not in hashes or file_manager.has_changed(hashes['creators'], TARGET_FILE_CREATORS):
 				self.build_file_change_inform(TARGET_FILE_CREATORS)
 
 			if 'date' not in hashes or file_manager.has_changed(hashes['dates'], TARGET_FILE_DATES):
 				self.build_file_change_inform(TARGET_FILE_DATES)
-
-			self.pending_transmissions.append({'action' : REQUEST_SIGN_UP, 'code' : HTTP_OK})
-			return os, True # Return the client info
+			return os, encrypt, True # Return the client info
 
 		self.pending_transmissions.append({'action' : REQUEST_SIGN_UP, 'code' : HTTP_BAD_REQUEST})
-		return None, encryptor,False
+		return None, None, False
 
-	def handle_login(self, request):
-			if 'keys' in request:
-				for key in request['keys']:
-					role = file_manager.get_role(key)
-					if role:
-						self.pending_transmissions.append(	{
-															'action' : REQUEST_LOGIN,
-															'code' : HTTP_OK,
-															'role' : role
-															})
-					else:
-						self.pending_transmissions.append(	{
-															'action' : REQUEST_LOGIN,
-															'code' : HTTP_UNAUTHORIZED,
-															'role' : 
-																{
-																	'key' : key
-																}
+	def handle_login(self, request, decryptor):
+		if 'keys' in request:
+			for key in request['keys']:
+				print('Decrypted Key: ' + decryptor.decrypt(key))
+				role = file_manager.get_role(decryptor.decrypt(key))
+				if role:
+					self.pending_transmissions.append(	{
+														'action' : REQUEST_LOGIN,
+														'code' : HTTP_OK,
+														'role' : role
+														})
+				else:
+					self.pending_transmissions.append(	{
+														'action' : REQUEST_LOGIN,
+														'code' : HTTP_UNAUTHORIZED,
+														'role' : 
+															{
+																'key' : key
 															}
-			self.pending_transmissions.append({'action' : REQUEST_SIGN_UP, 'code' : HTTP_BAD_REQUEST})
+														})
+		else: self.pending_transmissions.append({'action' : REQUEST_LOGIN, 'code' : HTTP_BAD_REQUEST})
 
 
 	def build_file_change_inform(self, target):

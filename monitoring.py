@@ -22,6 +22,7 @@ runntimeH = 0
 runntimeM = 0
 
 def show():
+    '''
     os.system('cls' if os.name == 'nt' else 'clear')
     print("┌─{backWhite}SNIPP  {version}{reset}──────────────────────┬──────────────────────────────────┐".format(backWhite = Back.WHITE + Fore.BLACK, reset = Style.RESET_ALL, version = version.rjust(6)))
     print("│ ╔═╗                                │ RUNTIME             {day:3d}d {hour:2d}h {minute:2d}m │".format(day = runntimeD, hour = runntimeH, minute = runntimeM))
@@ -31,6 +32,7 @@ def show():
     print("│ ║{bar}║ {ip3} │ {ip8}  │                                  │".format(bar = getBar(2), ip3 = (connectionIP[3] if activeConnections > 3 else "").ljust(13), ip8 = (connectionIP[8] if activeConnections > 8 else "").ljust(13)))
     print("│ ║{bar}║ {ip4} │ {ip9}  │                                  │".format(bar = getBar(1), ip4 = (connectionIP[4] if activeConnections > 4 else "").ljust(13), ip9 = (connectionIP[7] if activeConnections > 9 else "").ljust(13)))
     print("│ ╚═╝                                │                                  │\n└────────────────────────────────────┴──────────────────────────────────┘")
+    '''
     pass
 
    
