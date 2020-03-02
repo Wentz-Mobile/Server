@@ -8,7 +8,9 @@ TARGET_FILE_DATES       = 4
 
 def get_file(target):
     with open(get_filename(target), 'rb') as file:
-        return json.load(file)
+        file = json.load(file)
+        print(file)
+        return file
 
 def get_hash(target):
     hasher = hashlib.sha256()
