@@ -2,27 +2,8 @@ import threading
 import json
 import file_manager
 import encryptor
+import constants
 from socket import timeout
-
-HTTP_OK 				 = 200
-HTTP_NO_CONTENT          = 204
-HTTP_BAD_REQUEST 		 = 400
-HTTP_UNAUTHORIZED 		 = 401
-HTTP_FORBIDDEN 			 = 403
-HTTP_NOT_FOUND 			 = 404
-HTTP_NOT_ACCEPTABLE 	 = 406
-HTTP_PRECONDITION_FAILED = 412
-HTTP_EXPECTATION_FAILED  = 417
-HTTP_LOCKED 			 = 423
-HTTP_NOT_IMPLEMENTED 	 = 501
-
-REQUEST_SIGN_UP	= 1
-REQUEST_LOGIN	= 2
-
-INFORM_FILE_CHANGE = 200
-
-TARGET_FILE_CREATORS	= 2
-TARGET_FILE_DATES		= 3
 
 class ClientThread(threading.Thread):
 
@@ -32,6 +13,7 @@ class ClientThread(threading.Thread):
 		self.name = 'Client {}'.format(ip)
 		self.ip = ip
 		self.running = True
+		self.permissions = []
 		self.handler = Handler()
 		self.decryptor = encryptor.Decryptor()
 		self.sign_up()
@@ -62,8 +44,8 @@ class ClientThread(threading.Thread):
 
 			data = self.receive()
 			if data and 'action' in data:
-				if data['action'] is REQUEST_LOGIN:
-					self.handler.handle_login(data, self.decryptor)
+				if data['action'] is constants.REQUEST_LOGIN:
+					self.permissions = self.handler.handle_login(data, self.decryptor, self.permissions)
 
 	def send(self, jdic):
 		print("New transmission: " + str(jdic))
@@ -84,10 +66,10 @@ class ClientThread(threading.Thread):
 		except timeout:
 			pass
 		except KeyError:
-			self.send({'code': HTTP_BAD_REQUEST, 'action': -1})
+			self.send({'code': constants.HTTP_BAD_REQUEST, 'action': -1})
 		except json.decoder.JSONDecodeError:
 			print('decode error')
-			self.send({'code': HTTP_BAD_REQUEST, 'action': -1})
+			self.send({'code': constants.HTTP_BAD_REQUEST, 'action': -1})
 		except ConnectionResetError:
 			self.disconnect()
 		except ConnectionAbortedError:
@@ -113,47 +95,53 @@ class Handler(object):
 		self.pending_transmissions = []
 
 	def handle_sign_up(self, request, N):
-		if has_keys(request, ['action','os', 'version', 'N', 'hash']) and request['action'] is REQUEST_SIGN_UP: # Validate the request
-			self.pending_transmissions.append({'action' : REQUEST_SIGN_UP, 'code' : HTTP_OK, 'N' : N})
+		if has_keys(request, ['action','os', 'version', 'N', 'hash']) and request['action'] is constants.REQUEST_SIGN_UP: # Validate the request
+			self.pending_transmissions.append({'action' : constants.REQUEST_SIGN_UP, 'code' : constants.HTTP_OK, 'N' : N})
 			os = request['os']
 			encrypt = encryptor.Encryptor(request['N'])
 			hashes = request['hash']
-			if 'creators' not in hashes or file_manager.has_changed(hashes['creators'], TARGET_FILE_CREATORS):
-				self.build_file_change_inform(TARGET_FILE_CREATORS)
+			if 'creators' not in hashes or file_manager.has_changed(hashes['creators'], constants.TARGET_FILE_CREATORS):
+				self.build_file_change_inform(constants.TARGET_FILE_CREATORS)
 
-			if 'date' not in hashes or file_manager.has_changed(hashes['dates'], TARGET_FILE_DATES):
-				self.build_file_change_inform(TARGET_FILE_DATES)
+			if 'dates' not in hashes or file_manager.has_changed(hashes['dates'], constants.TARGET_FILE_DATES):
+				self.build_file_change_inform(constants.TARGET_FILE_DATES)
 			return os, encrypt, True # Return the client info
 
-		self.pending_transmissions.append({'action' : REQUEST_SIGN_UP, 'code' : HTTP_BAD_REQUEST})
+		self.pending_transmissions.append({'action' : constants.REQUEST_SIGN_UP, 'code' : constants.HTTP_BAD_REQUEST})
 		return None, None, False
 
-	def handle_login(self, request, decryptor):
+	def handle_login(self, request, decryptor, permissions):
 		if 'keys' in request:
 			for key in request['keys']:
-				print('Decrypted Key: ' + decryptor.decrypt(key))
-				role = file_manager.get_role(decryptor.decrypt(key))
+				key = decryptor.decrypt(key) 
+				print('Decrypted Key: ' + key)
+				role = file_manager.get_role(key)
 				if role:
+					for permission in role['permissions']:
+						if permission not in permissions:
+							permissions.append(permission)
+					
 					self.pending_transmissions.append(	{
-														'action' : REQUEST_LOGIN,
-														'code' : HTTP_OK,
+														'action' : constants.REQUEST_LOGIN,
+														'code' : constants.HTTP_OK,
 														'role' : role
 														})
 				else:
 					self.pending_transmissions.append(	{
-														'action' : REQUEST_LOGIN,
-														'code' : HTTP_UNAUTHORIZED,
+														'action' : constants.REQUEST_LOGIN,
+														'code' : constants.HTTP_UNAUTHORIZED,
 														'role' : 
 															{
 																'key' : key
 															}
 														})
-		else: self.pending_transmissions.append({'action' : REQUEST_LOGIN, 'code' : HTTP_BAD_REQUEST})
+		else: self.pending_transmissions.append({'action' : constants.REQUEST_LOGIN, 'code' : constants.HTTP_BAD_REQUEST})
+		return permissions
 
 
 	def build_file_change_inform(self, target):
 		 self.pending_transmissions.append(	{
-											'action' : INFORM_FILE_CHANGE, 
+											'action' : constants.INFORM_FILE_CHANGE, 
 											'target' : target,
 											'hash' : file_manager.get_hash(target),
 											'data' : file_manager.get_file(target)

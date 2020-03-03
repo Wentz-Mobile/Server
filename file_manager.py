@@ -1,15 +1,11 @@
 import json
 import hashlib
 import os
-
-TARGET_FILE_CREATORS    = 2
-TARGET_FILE_ROLES       = 3
-TARGET_FILE_DATES       = 4
+import constants
 
 def get_file(target):
     with open(get_filename(target), 'rb') as file:
         file = json.load(file)
-        print(file)
         return file
 
 def get_hash(target):
@@ -19,28 +15,24 @@ def get_hash(target):
         return hasher.hexdigest()
 
 def has_changed(hash, target):
-    if is_available(target):
-        return get_hash(target) is not hash
-    return False
-
-def is_available(target):
-    if get_filename(target) in os.listdir(os.path.dirname(__file__) + '\\Resources'):
-        return True
-    return False
+    return get_hash(target) is not hash
     
 
 def get_filename(target):
-    if target is TARGET_FILE_DATES:
+    if target is constants.TARGET_FILE_DATES:
         return 'Resources\\dates.json'
-    elif target is TARGET_FILE_CREATORS:
+    elif target is constants.TARGET_FILE_CREATORS:
         return 'Resources\\creators.json'
-    elif target is TARGET_FILE_ROLES:
+    elif target is constants.TARGET_FILE_ROLES:
         return 'Resources\\roles.json'
 
 def get_role(key):
-    if is_available(TARGET_FILE_ROLES):
-        with open(get_filename(TARGET_FILE_ROLES), 'rb') as file:
-            for role in json.load(file):
-                if role['key'] is key:
-                    return role
+    with open(get_filename(constants.TARGET_FILE_ROLES), 'rb') as file:
+        pending = json.load(file)
+        while pending:
+            if pending[0]['key'] is key:
+                return pending[0]
+            pending.extend(pending[0]['childs'])
+            pending.pop(0)
     return None
+
