@@ -58,25 +58,32 @@ def is_prime(num, iterations):
 
 def get_prime(size):
     prime = int.from_bytes(os.urandom(size), byteorder="big")
-    while not is_prime(prime, 300):
+    while not is_prime(prime, 40):
         prime = int.from_bytes(os.urandom(size), byteorder="big")
     return prime
 
 def get_keys():
     d = -1
+    print("started...")
     while d <= 1:
         p = 1
         q = 1
-        while math.log2(p) - math.log2(q) <= 0.1 or math.log2(p) - math.log2(q) >= 30:
+        checkValue = 0
+        while checkValue <= 0.1 or checkValue >= 30:
             p = get_prime(KEYSTRENGTH)
             q = get_prime(KEYSTRENGTH)
-        
+            checkValue = math.log2(p) - math.log2(q)
+        print("p + q generated")
         N = p * q
+        print("N generated")
         phiN = (p - 1)*(q - 1)
+        print("phiN generated")
         gcd, d, k = egcd(e, phiN)
+        print("gcd generated")
         #print('phiN: ' + str(phiN))
-        if N * 0.25 > d:
+        if N//4 > d:
             d = 0
+            print("failed...")
     return d, N, p, q
 
 def encrypt(m, e, N):
@@ -102,4 +109,9 @@ def decrypt(m, d, N, p, q):
     s = s.decode('utf-8').lstrip('\0')
     #print('m: ' + s)
     return s
+
+d, N, p, q = get_keys()
+
+print(N)
+
 

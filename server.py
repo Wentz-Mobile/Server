@@ -1,4 +1,5 @@
 #region IMPORTS
+import constants
 import hashlib
 import json
 import os
@@ -15,6 +16,8 @@ import client_manager
 # GENERAL VARIABLES
 PORT = 52323
 VERSION = '1.0.0'
+
+file_manager.get_file(constants.TARGET_FILE_CREATORS)
 
 def main():
 	# Server Setup

@@ -20,11 +20,11 @@ def has_changed(hash, target):
 
 def get_filename(target):
     if target is constants.TARGET_FILE_DATES:
-        return 'Resources\\dates.json'
+        return 'Ressources\\dates.json'
     elif target is constants.TARGET_FILE_CREATORS:
-        return 'Resources\\creators.json'
+        return 'Ressources\\creators.json'
     elif target is constants.TARGET_FILE_ROLES:
-        return 'Resources\\roles.json'
+        return 'Ressources\\roles.json'
 
 def get_role(key):
     with open(get_filename(constants.TARGET_FILE_ROLES), 'rb') as file:
